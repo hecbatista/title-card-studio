@@ -11,7 +11,7 @@ Each card is 1920×1080 and lasts 4.5 seconds (you can change this). The animati
 5. The subtitle fades up.
 6. The card fades out to black.
 
-There are two themes: **dark** (the original look) and **light** (off-white background, dark text).
+There are two themes: **dark** (the original look) and **light** (the cream color of the FirstByte website, dark text).
 
 You do not need ScreenKite or any other video app.
 
