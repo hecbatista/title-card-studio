@@ -1,0 +1,12 @@
+file,label,title,subtitle,chomp,theme,duration
+00-opening,FIRSTBYTE DASHBOARD,Fall 2026 Update,What's new for officers and members,yes,dark,4.5
+01-officer-home,OFFICER VIEW,Home,"Live meeting, approvals, and who needs a check-in",no,dark,4.5
+02-member-home,MEMBER VIEW,Home,"Your meetings, your attendance, and “I can’t make it”",no,dark,4.5
+03-meetings,OFFICER VIEW,Meetings,"Create, edit, and duplicate in one place",no,dark,4.5
+04-check-in,AT THE MEETING,Check-in,"Members scan the QR code, or type the short code",no,dark,4.5
+05-attendance,OFFICER VIEW,Attendance,"Present, excused, absent, walk-ins, and Close attendance",no,dark,4.5
+06-feedback,AFTER THE MEETING,Feedback,"Ratings and comments, live on the projector",no,dark,4.5
+07-members-teams,OFFICER VIEW,Members & Teams,"Profiles, CSV export, and team rosters",no,dark,4.5
+08-preview,OFFICER VIEW,Preview,See exactly what members see,no,dark,4.5
+09-settings,MEMBER VIEW,Settings,"Profile, theme, and deleting your account",no,dark,4.5
+10-thank-you,FIRSTBYTE DASHBOARD,Thank you,That's the Fall 2026 update,no,dark,5

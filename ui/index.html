@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Title Card Studio</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Title Card Studio</h1>
+      <p>Make an animated FirstByte title card, then download it as an MP4.</p>
+    </header>
+
+    <main>
+      <form id="form" autocomplete="off">
+        <label>
+          <span>Label <small>(small green text on top)</small></span>
+          <input name="label" value="OFFICER VIEW" maxlength="60" />
+        </label>
+        <label>
+          <span>Title <small>(types in, letter by letter)</small></span>
+          <input name="title" value="Meetings" maxlength="40" />
+        </label>
+        <label>
+          <span>Subtitle</span>
+          <input name="subtitle" value="Create, edit, and duplicate in one place" maxlength="90" />
+        </label>
+
+        <fieldset>
+          <legend>Theme</legend>
+          <div class="segmented">
+            <label><input type="radio" name="theme" value="dark" checked /><span>Dark</span></label>
+            <label><input type="radio" name="theme" value="light" /><span>Light</span></label>
+          </div>
+        </fieldset>
+
+        <label class="check">
+          <input type="checkbox" name="chomp" />
+          <span>Bite animation <small>(use it on the opening card only)</small></span>
+        </label>
+
+        <div class="row">
+          <label>
+            <span>Length</span>
+            <select name="duration">
+              <option value="3.5">3.5 s</option>
+              <option value="4">4 s</option>
+              <option value="4.5" selected>4.5 s</option>
+              <option value="5">5 s</option>
+              <option value="6">6 s</option>
+              <option value="7">7 s</option>
+            </select>
+          </label>
+          <label>
+            <span>Frame rate</span>
+            <select name="fps">
+              <option value="30" selected>30 fps</option>
+              <option value="60">60 fps</option>
+            </select>
+          </label>
+        </div>
+
+        <p id="hint" class="hint" hidden></p>
+
+        <button type="submit" id="download">Download MP4</button>
+        <div id="progress" class="progress" hidden><div></div></div>
+        <p id="status" class="status" aria-live="polite"></p>
+      </form>
+
+      <section class="preview">
+        <div class="stage" id="stage">
+          <iframe id="frame" title="Card preview" tabindex="-1"></iframe>
+        </div>
+        <div class="controls">
+          <button type="button" id="play" aria-label="Pause">❚❚</button>
+          <input type="range" id="scrub" min="0" max="4.5" step="0.001" value="0" aria-label="Time" />
+          <span id="time">0.0 s</span>
+        </div>
+        <p class="note">Live preview. The downloaded MP4 is made frame by frame, so it is smooth even if this preview stutters.</p>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>FirstByte title card</title>
+    <!--
+      One FirstByte title card: 1920x1080, a GSAP timeline that is paused.
+      The text and options come from the address (query string), for example:
+        card.html?label=OFFICER%20VIEW&title=Home&subtitle=...&chomp=no&theme=dark&duration=4.5
+      The renderer (src/render.js) moves the timeline one frame at a time and
+      takes a picture of each frame. The web UI adds &autoplay=1 to loop it.
+    -->
+    <style>
+      /* Inter, shipped with the tool (npm package @fontsource/inter), so every
+         computer draws the same letters. The first FirstByte cards used Inter too. */
+      @font-face { font-family: "Inter"; font-weight: 400; src: url("../node_modules/@fontsource/inter/files/inter-latin-ext-400-normal.woff2") format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+      @font-face { font-family: "Inter"; font-weight: 400; src: url("../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+      @font-face { font-family: "Inter"; font-weight: 600; src: url("../node_modules/@fontsource/inter/files/inter-latin-ext-600-normal.woff2") format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+      @font-face { font-family: "Inter"; font-weight: 600; src: url("../node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+      @font-face { font-family: "Inter"; font-weight: 700; src: url("../node_modules/@fontsource/inter/files/inter-latin-ext-700-normal.woff2") format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+      @font-face { font-family: "Inter"; font-weight: 700; src: url("../node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      /* Colors for each theme. "dark" is the original look. */
+      body {
+        --bg: #0c0a09;
+        --glow-1: rgba(34, 197, 94, 0.16);
+        --glow-2: rgba(77, 111, 79, 0.18);
+        --grain-opacity: 0.09;
+        --label: #22c55e;
+        --title: #fafaf9;
+        --subtitle: #a8a29e;
+        --caret: #22c55e;
+        --logo: #4d6f4f;
+      }
+      body[data-theme="light"] {
+        --bg: #f7f6f2;
+        --glow-1: rgba(34, 197, 94, 0.2);
+        --glow-2: rgba(134, 239, 172, 0.32);
+        --grain-opacity: 0.12;
+        --label: #15803d;
+        --title: #1c1917;
+        --subtitle: #57534e;
+        --caret: #16a34a;
+        --logo: #4d6f4f;
+      }
+      body {
+        background: var(--bg);
+        font-family: "Inter", -apple-system, system-ui, sans-serif;
+        overflow: hidden;
+        width: 1920px;
+        height: 1080px;
+      }
+      /* Background with a soft green glow, like the marketing site. */
+      .bg {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(900px 600px at 30% 45%, var(--glow-1), transparent 70%),
+          radial-gradient(700px 500px at 80% 70%, var(--glow-2), transparent 70%),
+          var(--bg);
+      }
+      /* Faint film grain on top of the glow. Smooth gradients turn into
+         visible rings ("banding") after video compression; grain hides that. */
+      .grain {
+        position: absolute;
+        inset: 0;
+        opacity: var(--grain-opacity);
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      }
+      .content {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 72px;
+      }
+      #logo { width: 260px; height: 260px; flex: none; }
+      .text { display: flex; flex-direction: column; gap: 18px; min-width: 760px; flex: none; }
+      .label {
+        color: var(--label);
+        font-size: 30px;
+        font-weight: 600;
+        letter-spacing: 0.32em;
+        clip-path: inset(0 100% 0 0);
+      }
+      .title {
+        color: var(--title);
+        font-size: 148px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+      }
+      /* An invisible full copy of the title holds the space, so nothing
+         moves while the letters type in on top of it. */
+      .title { position: relative; }
+      .title .ghost { visibility: hidden; }
+      .title .ghost .caret-space { display: inline-block; width: 20px; }
+      .title .typed { position: absolute; left: 0; top: 0; white-space: nowrap; }
+      .title .ch { display: none; }
+      .caret {
+        display: inline-block;
+        width: 10px;
+        height: 120px;
+        margin-left: 10px;
+        background: var(--caret);
+        vertical-align: -8px;
+      }
+      .subtitle {
+        color: var(--subtitle);
+        font-size: 38px;
+        font-weight: 400;
+        white-space: nowrap;
+        opacity: 0;
+      }
+      /* Always black, so every card fades in from black and out to black. */
+      .fade { position: absolute; inset: 0; background: #0c0a09; }
+    </style>
+  </head>
+  <body>
+    <div id="main-content" style="position:absolute;inset:0">
+      <div class="bg"></div>
+      <div class="grain"></div>
+      <div class="content" id="content">
+        <!-- The FirstByte logo, redrawn as a vector so it stays sharp:
+             a rounded square with a square hole, and a bite out of the
+             top-right corner (cut by the mask). -->
+        <svg id="logo" viewBox="200 200 880 880">
+          <defs>
+            <!-- The exact bite edge, traced from the real logo. The round
+                 bites are kept inside it, so they never eat past the edge. -->
+            <clipPath id="bite-area" clipPathUnits="userSpaceOnUse">
+              <path d="M844 190 L844 220 L846 220 L848 222 L850 262 L852 267 L854 270 L856 273 L858 275 L860 278 L862 280 L864 281 L866 283 L868 285 L870 286 L872 287 L874 288 L876 289 L878 290 L880 291 L882 291 L884 292 L886 292 L888 293 L890 293 L892 293 L894 295 L896 319 L898 325 L900 329 L902 332 L904 335 L906 338 L908 340 L910 342 L912 344 L914 345 L916 347 L918 348 L920 349 L922 351 L924 352 L926 352 L928 353 L930 354 L932 354 L934 355 L936 355 L938 355 L940 356 L942 356 L944 356 L946 356 L948 356 L950 356 L952 355 L954 355 L956 355 L958 354 L960 354 L962 353 L964 352 L966 351 L968 350 L970 349 L972 348 L974 347 L976 345 L978 343 L980 342 L982 341 L984 343 L986 347 L988 350 L990 352 L992 355 L994 357 L996 359 L998 360 L1000 362 L1002 363 L1004 365 L1006 366 L1008 367 L1010 368 L1012 368 L1014 369 L1016 370 L1018 370 L1020 371 L1022 371 L1024 371 L1026 372 L1028 372 L1030 372 L1032 372 L1034 372 L1036 371 L1038 371 L1040 371 L1042 370 L1044 370 L1046 369 L1048 368 L1050 367 L1052 366 L1054 365 L1056 364 L1058 364 L1090 364 L1090 190 Z" />
+            </clipPath>
+            <mask id="bites" maskUnits="userSpaceOnUse" x="0" y="0" width="1280" height="1280">
+              <rect x="0" y="0" width="1280" height="1280" fill="#fff" />
+              <!-- Three round bites, one circle fitted to each scallop. -->
+              <g clip-path="url(#bite-area)">
+                <circle id="bite1" cx="896.0" cy="243.8" r="0" fill="#000" />
+                <circle id="bite2" cx="944.7" cy="305.6" r="0" fill="#000" />
+                <circle id="bite3" cx="1029.6" cy="321.4" r="0" fill="#000" />
+              </g>
+              <!-- The whole bitten corner. Without the chomp it is shown from
+                   the first frame, so the logo is "already bitten". -->
+              <path id="bite-rest" fill="#000" stroke="#000" stroke-width="1.5" d="M844 190 L844 220 L846 220 L848 222 L850 262 L852 267 L854 270 L856 273 L858 275 L860 278 L862 280 L864 281 L866 283 L868 285 L870 286 L872 287 L874 288 L876 289 L878 290 L880 291 L882 291 L884 292 L886 292 L888 293 L890 293 L892 293 L894 295 L896 319 L898 325 L900 329 L902 332 L904 335 L906 338 L908 340 L910 342 L912 344 L914 345 L916 347 L918 348 L920 349 L922 351 L924 352 L926 352 L928 353 L930 354 L932 354 L934 355 L936 355 L938 355 L940 356 L942 356 L944 356 L946 356 L948 356 L950 356 L952 355 L954 355 L956 355 L958 354 L960 354 L962 353 L964 352 L966 351 L968 350 L970 349 L972 348 L974 347 L976 345 L978 343 L980 342 L982 341 L984 343 L986 347 L988 350 L990 352 L992 355 L994 357 L996 359 L998 360 L1000 362 L1002 363 L1004 365 L1006 366 L1008 367 L1010 368 L1012 368 L1014 369 L1016 370 L1018 370 L1020 371 L1022 371 L1024 371 L1026 372 L1028 372 L1030 372 L1032 372 L1034 372 L1036 371 L1038 371 L1040 371 L1042 370 L1044 370 L1046 369 L1048 368 L1050 367 L1052 366 L1054 365 L1056 364 L1058 364 L1090 364 L1090 190 Z" />
+            </mask>
+          </defs>
+          <g id="logo-shape" mask="url(#bites)">
+            <path style="fill: var(--logo)" fill-rule="evenodd"
+              d="M282 220 H998 Q1060 220 1060 282 V998 Q1060 1060 998 1060 H282 Q220 1060 220 998 V282 Q220 220 282 220 Z
+                 M460 405 H815 Q870 405 870 460 V815 Q870 870 815 870 H460 Q405 870 405 815 V460 Q405 405 460 405 Z" />
+          </g>
+        </svg>
+        <div class="text">
+          <div class="label" id="label"></div>
+          <div class="title" id="title"><span class="ghost" id="ghost"></span><span class="typed" id="typed"><span class="caret" id="caret"></span></span></div>
+          <div class="subtitle" id="subtitle"></div>
+        </div>
+      </div>
+      <div class="fade" id="fade"></div>
+    </div>
+
+    <script src="../node_modules/gsap/dist/gsap.min.js"></script>
+    <script>
+      // ---- 1. Read the card options from the address. ----
+      const q = new URLSearchParams(location.search);
+      const yes = (v) => /^(1|yes|y|true|on)$/i.test(String(v || "").trim());
+      const card = {
+        label: q.get("label") ?? "FIRSTBYTE DASHBOARD",
+        title: q.get("title") ?? "Check-in",
+        subtitle: q.get("subtitle") ?? "Members scan the QR code, or type the short code",
+        chomp: yes(q.get("chomp")),
+        theme: q.get("theme") === "light" ? "light" : "dark",
+        duration: Math.min(Math.max(Number(q.get("duration")) || 4.5, 2.5), 20),
+      };
+      window.__card = card;
+      document.body.dataset.theme = card.theme;
+      document.title = card.title || "FirstByte title card";
+
+      // ---- 2. Fill in the text. ----
+      const NBSP = " ";
+      document.getElementById("label").textContent = card.label;
+      document.getElementById("subtitle").textContent = card.subtitle;
+      const ghost = document.getElementById("ghost");
+      ghost.textContent = card.title.replace(/ /g, NBSP);
+      const caretSpace = document.createElement("span");
+      caretSpace.className = "caret-space";
+      ghost.appendChild(caretSpace);
+      const typed = document.getElementById("typed");
+      const caret = document.getElementById("caret");
+      for (const c of Array.from(card.title)) {
+        const ch = document.createElement("span");
+        ch.className = "ch";
+        ch.textContent = c === " " ? NBSP : c;
+        typed.insertBefore(ch, caret);
+      }
+
+      // ---- 3. Shrink everything a little if the text is too wide. ----
+      function fitToFrame() {
+        const content = document.getElementById("content");
+        const used = Array.from(content.children).reduce((w, el) => w + el.getBoundingClientRect().width, 0) + 72;
+        const room = 1920 - 2 * 130;
+        if (used > room) {
+          content.style.transform = `scale(${room / used})`;
+          content.style.transformOrigin = "50% 50%";
+        }
+      }
+
+      // ---- 4. Build the animation. ----
+      function buildTimeline() {
+        const tl = gsap.timeline({ paused: true });
+        const LETTER = 0.075;             // seconds per typed letter
+        const END = card.duration - 0.4;  // when the fade to black starts
+        const round2 = (n) => Math.round(n * 100) / 100;
+
+        // Fade up from black.
+        tl.to("#fade", { opacity: 0, duration: 0.35, ease: "power1.out" }, 0);
+
+        // Logo pops in with a little overshoot.
+        tl.from("#logo", { scale: 0.35, rotation: -12, opacity: 0, duration: 0.55, ease: "back.out(2)", transformOrigin: "50% 50%" }, 0.1);
+
+        if (card.chomp) {
+          // One chomp: all three tooth marks land together, with one bigger shake.
+          const BITES = [["#bite1", 50.5], ["#bite2", 51.4], ["#bite3", 51.3]];
+          BITES.forEach(([id, r], i) => tl.to(id, { attr: { r }, duration: 0.14, ease: "power3.out" }, 0.8 + i * 0.02));
+          tl.fromTo("#bite-rest", { scale: 0, svgOrigin: "1062 205" }, { scale: 1, svgOrigin: "1062 205", duration: 0.16, ease: "power3.out" }, 0.8);
+          tl.to("#logo", { x: 9, rotation: 2, duration: 0.05, yoyo: true, repeat: 3, ease: "none", transformOrigin: "50% 50%" }, 0.8);
+        }
+        // Without the chomp, nothing to animate: the bitten corner is already there.
+
+        // Text timing: after the chomp on the opening card, sooner on the others.
+        const labelAt = card.chomp ? 1.15 : 0.75;
+        const typeAt = card.chomp ? 1.4 : 1.0;
+        const letters = document.querySelectorAll("#title .ch");
+        const typedEnd = typeAt + letters.length * LETTER;
+        let blinks = Math.floor((END - 0.1 - typedEnd) / 0.27);
+        blinks -= (blinks + 1) % 2; // an odd count ends with the cursor showing
+        const subAt = round2(Math.max(typeAt + 0.85, typedEnd + 0.1));
+
+        // Label wipes in from left to right.
+        tl.to("#label", { clipPath: "inset(0 0% 0 0)", duration: 0.55, ease: "power2.out" }, labelAt);
+
+        // Title types in, one letter at a time.
+        letters.forEach((el, i) => tl.set(el, { display: "inline" }, typeAt + i * LETTER));
+
+        // Blinking cursor (a fixed number of blinks so every frame is predictable).
+        tl.to("#caret", { opacity: 0, duration: 0.01, repeat: Math.max(blinks, 1), yoyo: true, repeatDelay: 0.26, ease: "none" }, round2(typedEnd + 0.1));
+
+        // Subtitle slides up.
+        tl.from("#subtitle", { y: 18, duration: 0.5, ease: "power2.out" }, subAt);
+        tl.to("#subtitle", { opacity: 1, duration: 0.5, ease: "power2.out" }, subAt);
+
+        // Fade back to black at the end, ready for the next clip.
+        tl.to("#fade", { opacity: 1, duration: 0.4, ease: "power1.in" }, END);
+
+        // Hold the last (black) frame until the exact end of the card.
+        tl.set({}, {}, card.duration);
+        return tl;
+      }
+
+      window.__timelines = window.__timelines || {};
+      // Wait for the three Inter weights before measuring or drawing anything.
+      const fontsLoaded = Promise.all([
+        document.fonts.load('600 30px Inter', card.label || "A"),
+        document.fonts.load('700 148px Inter', card.title || "A"),
+        document.fonts.load('400 38px Inter', card.subtitle || "A"),
+      ]).then(() => document.fonts.ready);
+      fontsLoaded.then(() => {
+        fitToFrame();
+        const tl = buildTimeline();
+        window.__timelines["title-card"] = tl;
+        tl.seek(0);
+        if (yes(q.get("autoplay"))) {
+          // Preview only: follow the real clock, even when the browser is slow.
+          gsap.ticker.lagSmoothing(0);
+          tl.repeat(-1).repeatDelay(0.6);
+          tl.play(0);
+        }
+        window.__cardReady = true;
+        window.dispatchEvent(new Event("card-ready"));
+      });
+    </script>
+  </body>
+</html>
