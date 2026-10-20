@@ -21,7 +21,7 @@ const { values, positionals } = parseArgs({
 });
 
 const listFile = path.resolve(positionals[0] ?? path.join(TOOL_DIR, "cards.csv"));
-const outDir = path.resolve(values.out ?? path.join(TOOL_DIR, "out", "batch"));
+const outDir = path.resolve(values.out ?? path.join(process.env.TITLE_CARDS_OUT || path.join(TOOL_DIR, "out"), "batch"));
 const fps = Number(values.fps) === 60 ? 60 : 30;
 
 // A small CSV reader: handles "quoted, text", "" inside quotes, and Excel's CRLF.

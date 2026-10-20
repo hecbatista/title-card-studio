@@ -142,12 +142,12 @@ form.addEventListener("submit", async (event) => {
     a.click();
     a.remove();
     statusEl.innerHTML = "";
-    statusEl.append("Done. Also saved in the out folder as ");
+    statusEl.append("Done. A copy of ");
     const link = document.createElement("a");
     link.href = url;
     link.target = "_blank";
     link.textContent = job.file;
-    statusEl.append(link);
+    statusEl.append(link, ` is also saved in ${job.folder}`);
   } catch (err) {
     statusEl.className = "status error";
     statusEl.textContent = `${err.message}. Look at the terminal for details.`;

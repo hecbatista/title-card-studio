@@ -11,11 +11,13 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { normalizeCard, slugify } from "./card-options.js";
 import { launchBrowser, renderCard, TOOL_DIR } from "./render.js";
 
 const PORT = Number(process.env.PORT) || 4321;
-const OUT_DIR = path.join(TOOL_DIR, "out");
+// The "title-cards" command sets TITLE_CARDS_OUT (a folder in Movies).
+const OUT_DIR = process.env.TITLE_CARDS_OUT || path.join(TOOL_DIR, "out");
 
 // Only these folders can be read from the browser.
 const PUBLIC = {
@@ -51,7 +53,7 @@ function startJob(rawCard, fps) {
   const two = (n) => String(n).padStart(2, "0");
   const stamp = `${now.getFullYear()}${two(now.getMonth() + 1)}${two(now.getDate())}-${two(now.getHours())}${two(now.getMinutes())}${two(now.getSeconds())}`;
   const file = `${slugify(card.title)}-${card.theme}-${stamp}.mp4`;
-  const job = { id, status: "waiting", done: 0, total: Math.round(card.duration * fps), file, error: null };
+  const job = { id, status: "waiting", done: 0, total: Math.round(card.duration * fps), file, folder: OUT_DIR, error: null };
   jobs.set(id, job);
   queue = queue.then(async () => {
     job.status = "rendering";
@@ -137,14 +139,30 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`\n  Title Card Studio is running: http://localhost:${PORT}\n  Videos are saved in ${OUT_DIR}\n  Press Ctrl+C to stop.\n`);
-});
+// Start listening. Resolves with the address to open in the browser.
+export function startServer() {
+  const url = `http://localhost:${PORT}`;
+  return new Promise((resolve, reject) => {
+    server.once("error", (err) => {
+      if (err.code !== "EADDRINUSE") return reject(err);
+      console.log(`\n  Port ${PORT} is busy. Title Card Studio is probably open already: ${url}`);
+      console.log(`  If that page is not Title Card Studio, start on another port: PORT=4400 title-cards\n`);
+      resolve(url);
+    });
+    server.listen(PORT, "127.0.0.1", () => {
+      console.log(`\n  Title Card Studio is running: ${url}\n  Videos are saved in ${OUT_DIR}\n  Press Ctrl+C to stop.\n`);
+      process.on("SIGINT", shutdown);
+      process.on("SIGTERM", shutdown);
+      resolve(url);
+    });
+  });
+}
 
 async function shutdown() {
   server.close();
   if (browserPromise) await (await browserPromise.catch(() => null))?.close();
   process.exit(0);
 }
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+
+// "npm start" runs this file directly.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) startServer();

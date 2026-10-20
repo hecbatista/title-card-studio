@@ -4,6 +4,9 @@
   "private": true,
   "description": "Make animated FirstByte title cards as MP4 videos.",
   "type": "module",
+  "bin": {
+    "title-cards": "bin/title-cards.js"
+  },
   "scripts": {
     "start": "node src/server.js",
     "batch": "node src/batch.js",
