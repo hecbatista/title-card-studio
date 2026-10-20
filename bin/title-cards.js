@@ -70,7 +70,7 @@ async function ensureChrome() {
     chrome = await puppeteer.executablePath(); // a promise in new Puppeteer versions
   } catch {}
   if (chrome && existsSync(chrome)) return;
-  console.log("Downloading the private copy of Chrome that draws the cards (one time, about 150 MB)…");
+  console.log("Downloading the private copy of Chrome that draws the cards (one time, about 570 MB)…");
   const { downloadBrowsers } = await import("puppeteer/internal/node/install.js");
   await downloadBrowsers();
 }

@@ -39,7 +39,7 @@ Type:
 title-cards
 ```
 
-The first time, this installs ffmpeg and downloads a private copy of Chrome (about 150 MB). The tool uses Chrome to draw the frames. It does not change your normal Chrome. After the first time, it starts in a few seconds.
+The first time, this installs ffmpeg and downloads a private copy of Chrome (about 570 MB of disk space). The tool uses Chrome to draw the frames. It does not change your normal Chrome. After the first time, it starts in a few seconds.
 
 Then your browser opens Title Card Studio:
 
@@ -128,6 +128,26 @@ Two details keep the cards looking right:
 - **No rings in the glow.** Smooth dark gradients often show rings ("banding") after video compression. The card has faint film grain, and ffmpeg converts the colors with dithering. Together they keep the glow smooth.
 
 The fonts are [Inter](https://rsms.me/inter/), included with the tool (`@fontsource/inter`), so every computer draws the same letters.
+
+## Remove the tool
+
+1. Remove the `title-cards` command:
+
+   ```bash
+   npm uninstall -g firstbyte-title-card-studio
+   ```
+
+2. Remove the private Chrome. It is in a hidden folder in your home folder, `~/.cache/puppeteer`:
+
+   ```bash
+   rm -rf ~/.cache/puppeteer
+   ```
+
+   Other tools that use Puppeteer keep their Chrome in the same folder. If you delete it, those tools download it again when they need it.
+
+3. Your videos stay in `Movies/FirstByte Title Cards`. Delete that folder in Finder if you do not want them.
+
+ffmpeg stays installed. To remove it too: `brew uninstall ffmpeg`.
 
 ## Problems
 
