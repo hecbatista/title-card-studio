@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The "title-cards" command. After a one-time install
-//   npm install -g github:hecbatista/title-card-studio
+//   npm install -g https://github.com/hecbatista/title-card-studio/archive/refs/heads/main.tar.gz
 // an officer types:
 //   title-cards              start the tool and open it in the browser
 //   title-cards batch [file] make one MP4 for every row of a CSV file
@@ -48,7 +48,7 @@ Options:
 
 Videos are saved in: ${OUT_DIR}
 To get the newest version, run the install command again:
-  npm install -g github:hecbatista/title-card-studio
+  npm install -g https://github.com/hecbatista/title-card-studio/archive/refs/heads/main.tar.gz
 `;
 
 // ---- Checks (only for the chrome engine) ----

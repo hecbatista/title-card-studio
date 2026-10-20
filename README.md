@@ -27,8 +27,10 @@ You do not need ScreenKite or any other video app.
 Open Terminal and type:
 
 ```bash
-npm install -g github:hecbatista/title-card-studio
+npm install -g https://github.com/hecbatista/title-card-studio/archive/refs/heads/main.tar.gz
 ```
+
+This downloads the newest version from GitHub. You do not need a GitHub account or git.
 
 ### Use it
 
@@ -71,7 +73,7 @@ Everything is saved in the **FirstByte Title Cards** folder in your **Movies** f
 Run the install command again:
 
 ```bash
-npm install -g github:hecbatista/title-card-studio
+npm install -g https://github.com/hecbatista/title-card-studio/archive/refs/heads/main.tar.gz
 ```
 
 ## The list of cards (CSV)
@@ -159,7 +161,6 @@ If the chrome engine installed ffmpeg, it stays installed. To remove it too: `br
 | Problem | What to do |
 | --- | --- |
 | `title-cards: command not found` | Run the install command again. If it still fails, close Terminal and open it again. |
-| The install says `git: command not found`, or asks to install developer tools | Click **Install** in the window that opens (the Xcode command line tools), then run the install command again. |
 | `rendering stopped responding` | The screen was locked or the Mac went to sleep. Unlock it and try again. |
 | A video does not look right, or the helper does not start | Try the older engine: `title-cards --engine chrome`. Then tell Hector what happened. |
 | `ffmpeg is missing` (only with `--engine chrome`) | Install Homebrew from https://brew.sh, then run `title-cards --engine chrome` again. |
