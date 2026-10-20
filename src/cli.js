@@ -1,11 +1,12 @@
 // Render one card from the command line.
 //   npm run render -- --title "Check-in" --label "AT THE MEETING" --subtitle "Scan the QR code"
 //   Other options: --chomp  --theme light  --duration 5  --fps 60  --out out/my-card.mp4
+//                  --engine chrome   (use the private Chrome + ffmpeg instead of WebKit)
 
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { slugify } from "./card-options.js";
-import { launchBrowser, renderCard, TOOL_DIR } from "./render.js";
+import { openRenderer, TOOL_DIR } from "./render.js";
 
 const { values } = parseArgs({
   options: {
@@ -17,20 +18,21 @@ const { values } = parseArgs({
     duration: { type: "string" },
     fps: { type: "string", default: "30" },
     out: { type: "string" },
+    engine: { type: "string" },
   },
 });
 
 const fps = Number(values.fps) === 60 ? 60 : 30;
 const out = path.resolve(values.out ?? path.join(TOOL_DIR, "out", `${slugify(values.title ?? "card")}.mp4`));
 
-const browser = await launchBrowser();
+const renderer = await openRenderer(values.engine ? { engine: values.engine } : {});
 try {
   const started = Date.now();
-  await renderCard(browser, values, out, {
+  await renderer.render(values, out, {
     fps,
     onProgress: (done, total) => process.stdout.write(`\r  frame ${done}/${total}`),
   });
-  console.log(`\nSaved ${path.relative(process.cwd(), out)} (${((Date.now() - started) / 1000).toFixed(1)} s)`);
+  console.log(`\nSaved ${path.relative(process.cwd(), out)} (${((Date.now() - started) / 1000).toFixed(1)} s, ${renderer.engine} engine)`);
 } finally {
-  await browser.close();
+  await renderer.close();
 }

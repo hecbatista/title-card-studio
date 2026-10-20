@@ -6,8 +6,9 @@
 //   title-cards batch [file] make one MP4 for every row of a CSV file
 //   title-cards help         show this help
 //
-// Before it starts, it checks that ffmpeg and the private Chrome are there,
-// and installs what is missing.
+// On a Mac it uses the small WebKit helper (bin/title-cards-render), so there
+// is nothing else to install. With --engine chrome it uses a private Chrome
+// and ffmpeg instead, and installs them the first time.
 
 import { spawnSync } from "node:child_process";
 import { copyFile, mkdir } from "node:fs/promises";
@@ -20,9 +21,17 @@ const TOOL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const OUT_DIR = process.env.TITLE_CARDS_OUT || path.join(os.homedir(), "Movies", "FirstByte Title Cards");
 process.env.TITLE_CARDS_OUT = OUT_DIR;
 
+// Take out the options this file handles: --no-open and --engine.
 const args = process.argv.slice(2);
-const noOpen = args.includes("--no-open");
-const [command = "start", ...rest] = args.filter((a) => a !== "--no-open");
+let noOpen = false;
+const kept = [];
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--no-open") noOpen = true;
+  else if (args[i] === "--engine") process.env.TITLE_CARDS_ENGINE = args[++i] ?? "";
+  else if (args[i].startsWith("--engine=")) process.env.TITLE_CARDS_ENGINE = args[i].slice("--engine=".length);
+  else kept.push(args[i]);
+}
+const [command = "start", ...rest] = kept;
 
 const HELP = `
 Title Card Studio: animated FirstByte title cards as MP4 videos.
@@ -32,23 +41,37 @@ Title Card Studio: animated FirstByte title cards as MP4 videos.
   title-cards batch FILE    Use a different CSV (or JSON) file.
   title-cards help          Show this help.
 
-Add --no-open to stop it from opening the browser or Finder.
+Options:
+  --no-open          Do not open the browser or Finder.
+  --engine chrome    Draw the cards with a private Chrome and ffmpeg instead
+                     of Safari's engine (downloads about 570 MB the first time).
 
 Videos are saved in: ${OUT_DIR}
 To get the newest version, run the install command again:
   npm install -g github:hecbatista/title-card-studio
 `;
 
-// ---- Checks ----
+// ---- Checks (only for the chrome engine) ----
 
-function hasProgram(cmd, args = ["-version"]) {
-  return spawnSync(cmd, args, { stdio: "ignore" }).status === 0;
+async function prepare() {
+  const { defaultEngine, ensureChrome } = await import("../src/render.js");
+  let engine;
+  try {
+    engine = defaultEngine();
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
+  if (engine === "chrome") {
+    await ensureFfmpeg();
+    await ensureChrome();
+  }
 }
 
 async function ensureFfmpeg() {
-  const { findFfmpeg } = await import("../src/render.js");
-  if (hasProgram(findFfmpeg())) return;
-  if (!hasProgram("brew", ["--version"])) {
+  const { hasFfmpeg } = await import("../src/render.js");
+  if (hasFfmpeg()) return;
+  if (spawnSync("brew", ["--version"], { stdio: "ignore" }).status !== 0) {
     console.error(
       "\nffmpeg is missing. It is the program that makes the video file.\n" +
         "1. Install Homebrew: open https://brew.sh and follow the one step there.\n" +
@@ -63,18 +86,6 @@ async function ensureFfmpeg() {
   }
 }
 
-async function ensureChrome() {
-  const { default: puppeteer } = await import("puppeteer");
-  let chrome = "";
-  try {
-    chrome = await puppeteer.executablePath(); // a promise in new Puppeteer versions
-  } catch {}
-  if (chrome && existsSync(chrome)) return;
-  console.log("Downloading the private copy of Chrome that draws the cards (one time, about 570 MB)…");
-  const { downloadBrowsers } = await import("puppeteer/internal/node/install.js");
-  await downloadBrowsers();
-}
-
 // ---- Commands ----
 
 function openBrowser(url) {
@@ -84,17 +95,23 @@ function openBrowser(url) {
 }
 
 async function start() {
-  await ensureFfmpeg();
-  await ensureChrome();
+  await prepare();
   const { startServer } = await import("../src/server.js");
   const url = await startServer();
   openBrowser(url);
 }
 
 async function batch() {
-  await ensureFfmpeg();
-  await ensureChrome();
-  let file = rest.find((a) => !a.startsWith("--"));
+  await prepare();
+  // The list file is the first word that is not an option or an option's value.
+  let file;
+  for (let i = 0; i < rest.length; i++) {
+    if (rest[i] === "--out" || rest[i] === "--fps") i++;
+    else if (!rest[i].startsWith("--")) {
+      file = rest[i];
+      break;
+    }
+  }
   if (!file) {
     // The officer's own list lives next to the videos. Start it from the example.
     file = path.join(OUT_DIR, "cards.csv");

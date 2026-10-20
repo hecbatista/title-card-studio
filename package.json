@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node src/server.js",
     "batch": "node src/batch.js",
-    "render": "node src/cli.js"
+    "render": "node src/cli.js",
+    "build:helper": "sh scripts/build-helper.sh"
   },
   "engines": {
     "node": ">=20"
@@ -21,6 +22,6 @@
     "puppeteer": "25.15.0"
   },
   "allowScripts": {
-    "puppeteer@25.15.0": true
+    "puppeteer": false
   }
 }

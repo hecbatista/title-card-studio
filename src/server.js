@@ -13,7 +13,7 @@ import http from "node:http";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { normalizeCard, slugify } from "./card-options.js";
-import { launchBrowser, renderCard, TOOL_DIR } from "./render.js";
+import { openRenderer, TOOL_DIR } from "./render.js";
 
 const PORT = Number(process.env.PORT) || 4321;
 // The "title-cards" command sets TITLE_CARDS_OUT (a folder in Movies).
@@ -39,9 +39,10 @@ const TYPES = {
   ".mp4": "video/mp4",
 };
 
-// ---- Rendering: one at a time, with one browser kept open. ----
-let browserPromise = null;
-const getBrowser = () => (browserPromise ??= launchBrowser());
+// ---- Rendering: one at a time. The renderer stays ready between cards. ----
+// The engine comes from TITLE_CARDS_ENGINE (webkit or chrome), or the default.
+let rendererPromise = null;
+const getRenderer = () => (rendererPromise ??= openRenderer());
 const jobs = new Map();
 let queue = Promise.resolve();
 let nextId = 1;
@@ -58,8 +59,8 @@ function startJob(rawCard, fps) {
   queue = queue.then(async () => {
     job.status = "rendering";
     try {
-      const browser = await getBrowser();
-      await renderCard(browser, card, path.join(OUT_DIR, file), {
+      const renderer = await getRenderer();
+      await renderer.render(card, path.join(OUT_DIR, file), {
         fps,
         onProgress: (done, total) => Object.assign(job, { done, total }),
       });
@@ -69,7 +70,9 @@ function startJob(rawCard, fps) {
       job.status = "error";
       job.error = err.message;
       console.error(`Render failed: ${err.message}`);
-      browserPromise = null; // start a fresh browser next time
+      const old = rendererPromise;
+      rendererPromise = null; // start fresh next time
+      old?.then((r) => r.close()).catch(() => {});
     }
   });
   return job;
@@ -160,9 +163,13 @@ export function startServer() {
 
 async function shutdown() {
   server.close();
-  if (browserPromise) await (await browserPromise.catch(() => null))?.close();
+  if (rendererPromise) await (await rendererPromise.catch(() => null))?.close();
   process.exit(0);
 }
 
-// "npm start" runs this file directly.
-if (import.meta.url === pathToFileURL(process.argv[1]).href) startServer();
+// "npm start" runs this file directly ("npm start -- --engine chrome" also works).
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const i = process.argv.indexOf("--engine");
+  if (i !== -1) process.env.TITLE_CARDS_ENGINE = process.argv[i + 1] ?? "";
+  startServer();
+}

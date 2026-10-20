@@ -53,13 +53,13 @@
         height: 1080px;
       }
       /* Background with a soft green glow, like the marketing site. */
+      /* The two glows are drawn by drawBackground() below, into this canvas. */
       .bg {
         position: absolute;
         inset: 0;
-        background:
-          radial-gradient(900px 600px at 30% 45%, var(--glow-1), transparent 70%),
-          radial-gradient(700px 500px at 80% 70%, var(--glow-2), transparent 70%),
-          var(--bg);
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
       }
       /* Faint film grain on top of the glow. Smooth gradients turn into
          visible rings ("banding") after video compression; grain hides that. */
@@ -123,7 +123,7 @@
   </head>
   <body>
     <div id="main-content" style="position:absolute;inset:0">
-      <div class="bg"></div>
+      <canvas class="bg" id="bg" width="1920" height="1080"></canvas>
       <div class="grain"></div>
       <div class="content" id="content">
         <!-- The FirstByte logo, redrawn as a vector so it stays sharp:
@@ -179,6 +179,61 @@
       };
       window.__card = card;
       document.body.dataset.theme = card.theme;
+
+      // ---- The background: the page color with two soft green glows. ----
+      // This is the same picture as two CSS radial-gradients:
+      //   radial-gradient(900px 600px at 30% 45%, glow-1, transparent 70%),
+      //   radial-gradient(700px 500px at 80% 70%, glow-2, transparent 70%)
+      // We draw it ourselves because browsers round the colors of soft dark
+      // gradients to whole steps, and the steps show as rings ("banding").
+      // Chrome hides this, Safari's engine does not. Here every pixel gets a
+      // tiny, fixed bit of noise before rounding, so all engines draw the
+      // same smooth glow.
+      function drawBackground() {
+        const css = getComputedStyle(document.body);
+        const probe = document.createElement("canvas").getContext("2d");
+        const rgba = (name) => {
+          probe.fillStyle = "#000";
+          probe.fillStyle = css.getPropertyValue(name).trim();
+          const v = String(probe.fillStyle); // "#rrggbb", or "rgba(r, g, b, a)" when see-through
+          if (v.startsWith("#")) return [1, 3, 5].map((i) => parseInt(v.slice(i, i + 2), 16)).concat(1);
+          return v.match(/[\d.]+/g).map(Number);
+        };
+        const bg = rgba("--bg");
+        const glows = [
+          { color: rgba("--glow-2"), cx: 0.8 * 1920, cy: 0.7 * 1080, rx: 700, ry: 500 },
+          { color: rgba("--glow-1"), cx: 0.3 * 1920, cy: 0.45 * 1080, rx: 900, ry: 600 },
+        ]; // bottom layer first, like CSS (the first gradient listed is on top)
+        const ctx = document.getElementById("bg").getContext("2d");
+        const img = ctx.createImageData(1920, 1080);
+        const px = img.data;
+        for (let y = 0; y < 1080; y++) {
+          for (let x = 0; x < 1920; x++) {
+            let r = bg[0], g = bg[1], b = bg[2];
+            for (const glow of glows) {
+              const t = Math.hypot((x + 0.5 - glow.cx) / glow.rx, (y + 0.5 - glow.cy) / glow.ry);
+              const a = t < 0.7 ? glow.color[3] * (1 - t / 0.7) : 0;
+              r += (glow.color[0] - r) * a;
+              g += (glow.color[1] - g) * a;
+              b += (glow.color[2] - b) * a;
+            }
+            // Fixed noise from the pixel position (the same every time),
+            // from -1 to 1 color steps. The pixel array rounds to whole steps.
+            let h = (x * 374761393 + y * 668265263) | 0;
+            h = Math.imul(h ^ (h >>> 13), 1274126177);
+            const n1 = ((h >>> 0) & 0xffff) / 65536;
+            const n2 = ((h >>> 16) & 0xffff) / 65536;
+            const d = n1 + n2 - 1;
+            const i = (y * 1920 + x) * 4;
+            px[i] = r + d;
+            px[i + 1] = g + d;
+            px[i + 2] = b + d;
+            px[i + 3] = 255;
+          }
+        }
+        ctx.putImageData(img, 0, 0);
+      }
+      drawBackground();
       document.title = card.title || "FirstByte title card";
 
       // ---- 2. Fill in the text. ----

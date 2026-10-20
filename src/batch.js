@@ -2,6 +2,7 @@
 //   npm run batch                          reads cards.csv, writes to out/batch/
 //   npm run batch -- my-cards.csv          a different list
 //   npm run batch -- my-cards.json --out ~/Desktop/cards --fps 60
+//   npm run batch -- --engine chrome       use the private Chrome + ffmpeg
 //
 // CSV columns: label, title, subtitle, chomp (yes/no), theme (dark/light)
 // Optional columns: duration (seconds, default 4.5), file (the output name)
@@ -10,13 +11,14 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { slugify } from "./card-options.js";
-import { launchBrowser, renderCard, TOOL_DIR } from "./render.js";
+import { openRenderer, TOOL_DIR } from "./render.js";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     out: { type: "string" },
     fps: { type: "string", default: "30" },
+    engine: { type: "string" },
   },
 });
 
@@ -67,9 +69,9 @@ if (!cards?.length) {
   console.error(`No cards found in ${listFile}`);
   process.exit(1);
 }
-console.log(`Rendering ${cards.length} cards from ${path.relative(process.cwd(), listFile)} to ${outDir} at ${fps} fps\n`);
 
-const browser = await launchBrowser();
+const renderer = await openRenderer(values.engine ? { engine: values.engine } : {});
+console.log(`Rendering ${cards.length} cards from ${path.relative(process.cwd(), listFile)} to ${outDir} at ${fps} fps (${renderer.engine} engine)\n`);
 let failed = 0;
 try {
   for (const [i, card] of cards.entries()) {
@@ -79,7 +81,7 @@ try {
     const out = path.join(outDir, `${name}.mp4`);
     const started = Date.now();
     try {
-      await renderCard(browser, card, out, {
+      await renderer.render(card, out, {
         fps,
         onProgress: (done, total) => process.stdout.write(`\r  [${i + 1}/${cards.length}] ${name}  frame ${done}/${total}`),
       });
@@ -90,7 +92,7 @@ try {
     }
   }
 } finally {
-  await browser.close();
+  await renderer.close();
 }
 console.log(`\n${cards.length - failed} of ${cards.length} cards saved in ${outDir}`);
 process.exitCode = failed ? 1 : 0;

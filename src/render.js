@@ -1,24 +1,100 @@
 // The renderer: turns one title card into an MP4 file.
 //
-// How it works:
-// 1. A headless Chrome (no window) opens card/card.html at 1920x1080.
-// 2. For every frame, we move the paused GSAP timeline to that exact time
-//    and take a screenshot. Nothing plays in real time, so a slow computer
-//    makes the same video as a fast one.
-// 3. The screenshots go straight into ffmpeg, which makes an H.264 MP4.
+// There are two ways ("engines") to do it. Both open card/card.html, move the
+// paused GSAP timeline to each frame's exact time, take a picture, and make an
+// H.264 MP4 from the pictures. Nothing plays in real time, so a slow computer
+// makes the same video as a fast one.
+//
+// - "webkit" (the default on a Mac): bin/title-cards-render, a small helper
+//   program. It uses WebKit (the engine inside Safari) and AVFoundation
+//   (Apple's video library), which come with macOS. Nothing to download.
+// - "chrome": a private copy of Chrome (Puppeteer, about 570 MB, downloaded
+//   the first time) and ffmpeg (from Homebrew). Use it with --engine chrome,
+//   or on computers that are not Macs.
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { createInterface } from "node:readline";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import puppeteer from "puppeteer";
 import { cardQuery, normalizeCard } from "./card-options.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const TOOL_DIR = path.resolve(here, "..");
 const CARD_PAGE = path.join(TOOL_DIR, "card", "card.html");
+const HELPER = path.join(TOOL_DIR, "bin", "title-cards-render");
+
+export const ENGINES = ["webkit", "chrome"];
+
+export function defaultEngine() {
+  const chosen = process.env.TITLE_CARDS_ENGINE;
+  if (chosen) {
+    if (!ENGINES.includes(chosen)) throw new Error(`Unknown engine "${chosen}". Use webkit or chrome.`);
+    return chosen;
+  }
+  return process.platform === "darwin" && existsSync(HELPER) ? "webkit" : "chrome";
+}
+
+/**
+ * Get ready to render cards with one engine.
+ * @param {{engine?: "webkit" | "chrome"}} [opts]
+ * @returns {Promise<{engine: string, render: Function, close: () => Promise<void>}>}
+ *   render(card, outFile, {fps, onProgress}) makes one MP4.
+ */
+export async function openRenderer({ engine = defaultEngine() } = {}) {
+  if (engine === "webkit") {
+    if (process.platform !== "darwin") throw new Error("The webkit engine only works on a Mac. Use --engine chrome.");
+    return { engine, render: renderWithWebKit, close: async () => {} };
+  }
+  if (engine === "chrome") {
+    await ensureChrome();
+    const browser = await launchChrome();
+    return {
+      engine,
+      render: (card, outFile, opts) => renderWithChrome(browser, card, outFile, opts),
+      close: () => browser.close(),
+    };
+  }
+  throw new Error(`Unknown engine "${engine}". Use webkit or chrome.`);
+}
+
+// ---------------------------------------------------------------------------
+// The "webkit" engine: run the helper and read its "frame 12/135" lines.
+
+async function renderWithWebKit(rawCard, outFile, { fps = 30, onProgress } = {}) {
+  const card = normalizeCard(rawCard);
+  await mkdir(path.dirname(path.resolve(outFile)), { recursive: true });
+  const helper = spawn(
+    HELPER,
+    ["--page", CARD_PAGE, "--root", TOOL_DIR, "--query", cardQuery(card), "--out", path.resolve(outFile), "--fps", String(fps)],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+  let errors = "";
+  helper.stderr.on("data", (d) => (errors += d));
+  let total = 0;
+  createInterface({ input: helper.stdout }).on("line", (line) => {
+    const m = line.match(/^frame (\d+)\/(\d+)$/);
+    if (m) {
+      total = Number(m[2]);
+      onProgress?.(Number(m[1]), total);
+    }
+  });
+  const code = await new Promise((resolve, reject) => {
+    helper.on("error", (err) =>
+      reject(new Error(`Could not start the WebKit helper (${err.message}). Try --engine chrome.`)),
+    );
+    helper.on("close", resolve);
+  });
+  if (code !== 0) {
+    throw new Error(errors.trim().replace(/^title-cards-render: /, "") || `The WebKit helper failed (code ${code})`);
+  }
+  return { file: outFile, frames: total, fps, card };
+}
+
+// ---------------------------------------------------------------------------
+// The "chrome" engine: Puppeteer screenshots piped into ffmpeg.
 
 export function findFfmpeg() {
   if (process.env.FFMPEG) return process.env.FFMPEG;
@@ -28,7 +104,25 @@ export function findFfmpeg() {
   return "ffmpeg"; // hope it is on the PATH
 }
 
-export function launchBrowser() {
+export function hasFfmpeg() {
+  return spawnSync(findFfmpeg(), ["-version"], { stdio: "ignore" }).status === 0;
+}
+
+// Download the private Chrome the first time the chrome engine is used.
+export async function ensureChrome() {
+  const { default: puppeteer } = await import("puppeteer");
+  let chrome = "";
+  try {
+    chrome = await puppeteer.executablePath(); // a promise in new Puppeteer versions
+  } catch {}
+  if (chrome && existsSync(chrome)) return;
+  console.log("Downloading the private copy of Chrome that draws the cards (one time, about 570 MB)…");
+  const { downloadBrowsers } = await import("puppeteer/internal/node/install.js");
+  await downloadBrowsers();
+}
+
+async function launchChrome() {
+  const { default: puppeteer } = await import("puppeteer");
   return puppeteer.launch({
     headless: true,
     args: [
@@ -58,14 +152,7 @@ function ffmpegArgs(fps, outFile) {
   ];
 }
 
-/**
- * Render one card to an MP4.
- * @param {import("puppeteer").Browser} browser  from launchBrowser()
- * @param {object} rawCard  label, title, subtitle, chomp, theme, duration
- * @param {string} outFile  where to write the .mp4
- * @param {{fps?: number, onProgress?: (done: number, total: number) => void}} [opts]
- */
-export async function renderCard(browser, rawCard, outFile, { fps = 30, onProgress } = {}) {
+async function renderWithChrome(browser, rawCard, outFile, { fps = 30, onProgress } = {}) {
   const card = normalizeCard(rawCard);
   await mkdir(path.dirname(outFile), { recursive: true });
 
