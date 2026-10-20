@@ -166,3 +166,12 @@ If the chrome engine installed ffmpeg, it stays installed. To remove it too: `br
 | `ffmpeg is missing` (only with `--engine chrome`) | Install Homebrew from https://brew.sh, then run `title-cards --engine chrome` again. |
 | Port 4321 is busy | Title Card Studio is probably open already in another Terminal window. To use another port: `PORT=4400 title-cards`. |
 | The title is too long | Long text is made smaller so it fits the screen. If the title types in too late to read, choose a longer **Length**. |
+
+## License
+
+The code in this repository is under the [MIT License](LICENSE). You can use, change, and share it freely, as long as you keep the license text.
+
+Some parts are not covered by the MIT License:
+
+- The tools that npm installs keep their own licenses: [GSAP](https://gsap.com/standard-license) (free "standard no-charge" license), the [Inter](https://github.com/rsms/inter) font (SIL Open Font License 1.1), and [Puppeteer](https://github.com/puppeteer/puppeteer) (Apache 2.0).
+- The FirstByte name and logo belong to FirstByte.

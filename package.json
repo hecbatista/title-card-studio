@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Make animated FirstByte title cards as MP4 videos.",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "title-cards": "bin/title-cards.js"
