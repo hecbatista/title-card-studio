@@ -22,7 +22,6 @@ You do not need ScreenKite or any other video app.
 - A Mac (other computers can work, but we only tested on macOS).
 - **Node.js 20 or newer.** To check, type `node -v` in Terminal. To get it, go to https://nodejs.org and install the "LTS" version.
 - **Homebrew**, from https://brew.sh. The tool uses it to install ffmpeg, the program that makes the video file.
-- **Access to this GitHub repository.** Ask Hector to add you. You must also be signed in to GitHub in Terminal. The easiest way: `brew install gh`, then `gh auth login`.
 
 ### Install (one time)
 
@@ -135,7 +134,7 @@ The fonts are [Inter](https://rsms.me/inter/), included with the tool (`@fontsou
 | Problem | What to do |
 | --- | --- |
 | `title-cards: command not found` | Run the install command again. If it still fails, close Terminal and open it again. |
-| The install says `Permission denied (publickey)` or `Repository not found` | You do not have access to the repository yet, or Terminal is not signed in to GitHub. Ask Hector for access, then run `gh auth login`. |
+| The install says `git: command not found`, or asks to install developer tools | Click **Install** in the window that opens (the Xcode command line tools), then run the install command again. |
 | `ffmpeg is missing` | Install Homebrew from https://brew.sh, then run `title-cards` again. |
 | Port 4321 is busy | Title Card Studio is probably open already in another Terminal window. To use another port: `PORT=4400 title-cards`. |
 | The title is too long | Long text is made smaller so it fits the screen. If the title types in too late to read, choose a longer **Length**. |
